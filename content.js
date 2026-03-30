@@ -12,6 +12,7 @@
     const VACANCY_PAGE_MORE_ACTIONS_SELECTOR = 'button[data-qa="vacancy__more-actions"]';
     const VACANCY_PAGE_STATE_MARKER = 'data-hh-vacancy-page-state';
     const HIDE_BUTTON_MARKER = 'data-hh-hide-button';
+    const VACANCY_PAGE_HIDE_BUTTON_MARKER = 'data-hh-vacancy-page-hide-button';
     const AUTO_HIDDEN_CARD_MARKER = 'data-hh-auto-hidden-card';
     const HIDDEN_CARD_MARKER = 'data-hh-hidden-card';
     const HIDE_POPUP_SUPPRESSION_MARKER = 'data-hh-hide-popup-suppressed';
@@ -378,6 +379,15 @@
         return button instanceof HTMLElement ? button : null;
     }
 
+    function getVacancyPageHideButtonFromEventTarget(target) {
+        if (!(target instanceof Element)) {
+            return null;
+        }
+
+        const button = target.closest(`[${VACANCY_PAGE_HIDE_BUTTON_MARKER}]`);
+        return button instanceof HTMLButtonElement ? button : null;
+    }
+
     function stopCardNavigation(event) {
         event.preventDefault();
         event.stopPropagation();
@@ -447,6 +457,39 @@
             buttonLabel: button.dataset.defaultLabel || button.textContent || 'hide'
         }, card);
         void handleHideClick(card, button, button.dataset.vacancyId || null);
+    }
+
+    function triggerVacancyPageHideButtonAction(button) {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const vacancyId = getCurrentVacancyId();
+        const employerId = getCurrentEmployerId();
+        const target = button.dataset.hideTarget;
+
+        if (target === 'vacancy') {
+            logAction('vacancy-page-hide-button-click-captured', { target, vacancyId }, button);
+            void handleVacancyPageHideClick(button, {
+                target: 'vacancy',
+                defaultLabel: 'Скрыть вакансию',
+                successLabel: 'Скрыто',
+                patchState: { vacancyHidden: true },
+                onHide: () => hideVacancyViaApi(null, vacancyId)
+            });
+            return;
+        }
+
+        if (target === 'employer') {
+            logAction('vacancy-page-hide-button-click-captured', { target, vacancyId, employerId }, button);
+            void handleVacancyPageHideClick(button, {
+                target: 'employer',
+                defaultLabel: 'Скрыть компанию',
+                successLabel: 'Компания скрыта',
+                patchState: { employerHidden: true },
+                onHide: () => hideEmployerFromVacancyPage(employerId, vacancyId, button)
+            });
+        }
     }
 
     function bindHideButton(button, card) {
@@ -1084,9 +1127,20 @@
 
         if (root.parentElement !== layout) {
             layout.appendChild(root);
-        } else if (layout.lastElementChild !== root) {
-            layout.appendChild(root);
         }
+
+        const renderKey = [
+            vacancyId || '',
+            employerId || '',
+            state?.vacancyHidden ? '1' : '0',
+            state?.employerHidden ? '1' : '0'
+        ].join(':');
+
+        if (root.dataset.renderKey === renderKey) {
+            return;
+        }
+
+        root.dataset.renderKey = renderKey;
 
         root.replaceChildren();
 
@@ -1131,41 +1185,21 @@
 
             if (vacancyId) {
                 const vacancyButton = createHideButton('Скрыть вакансию');
+                vacancyButton.setAttribute(VACANCY_PAGE_HIDE_BUTTON_MARKER, 'true');
+                vacancyButton.dataset.hideTarget = 'vacancy';
                 if (state?.vacancyHidden) {
                     setButtonState(vacancyButton, 'success', 'Скрыто');
                 }
-
-                vacancyButton.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    void handleVacancyPageHideClick(vacancyButton, {
-                        target: 'vacancy',
-                        defaultLabel: 'Скрыть вакансию',
-                        successLabel: 'Скрыто',
-                        patchState: { vacancyHidden: true },
-                        onHide: () => hideVacancyViaApi(null, vacancyId)
-                    });
-                });
                 actions.appendChild(vacancyButton);
             }
 
             if (employerId) {
                 const employerButton = createHideButton('Скрыть компанию');
+                employerButton.setAttribute(VACANCY_PAGE_HIDE_BUTTON_MARKER, 'true');
+                employerButton.dataset.hideTarget = 'employer';
                 if (state?.employerHidden) {
                     setButtonState(employerButton, 'success', 'Компания скрыта');
                 }
-
-                employerButton.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    void handleVacancyPageHideClick(employerButton, {
-                        target: 'employer',
-                        defaultLabel: 'Скрыть компанию',
-                        successLabel: 'Компания скрыта',
-                        patchState: { employerHidden: true },
-                        onHide: () => hideEmployerFromVacancyPage(employerId, vacancyId, employerButton)
-                    });
-                });
                 actions.appendChild(employerButton);
             }
 
@@ -2286,88 +2320,24 @@
         return false;
     }
 
-    async function hideEmployerViaVacancyPageMenu(employerId, vacancyId = null, context = null) {
-        const trigger = getVacancyPageMoreActionsButton();
-        if (!(trigger instanceof HTMLElement)) {
-            logAction('hide-employer-menu-trigger-missing', {
-                vacancyId,
-                employerId
-            }, context);
+    async function hideEmployerFromVacancyPage(employerId, vacancyId = null, context = null) {
+        const hiddenViaApi = await hideEmployerViaApi(employerId, vacancyId, context);
+        if (!hiddenViaApi) {
             return false;
         }
 
-        logAction('hide-employer-menu-request-started', {
-            vacancyId,
-            employerId
-        }, context);
-
-        let popupState = findVacancyPageMenuPopup(trigger, document, true);
-        if (!popupState) {
-            clickElement(trigger);
-            popupState = await waitForVacancyPageMenuPopup(trigger);
-        }
-
-        if (!popupState?.popup) {
-            logAction('hide-employer-menu-popup-missing', {
-                vacancyId,
-                employerId
-            }, context);
-            return false;
-        }
-
-        const action = findVacancyPageMenuAction(popupState.popup, ['скрыть вакансии компании'], true);
-        if (!(action instanceof HTMLElement)) {
-            logAction('hide-employer-menu-action-missing', {
-                vacancyId,
-                employerId,
-                labels: popupState.labels
-            }, context);
-            await closeVacancyPageMenu(trigger, popupState.popup);
-            return false;
-        }
-
-        clickElement(action);
-
-        const hidden = vacancyId
+        const confirmed = vacancyId
             ? await waitForEmployerHiddenState(vacancyId, employerId, context)
             : true;
 
-        if (hidden) {
-            logAction('hide-employer-menu-request-finished', {
-                vacancyId,
-                employerId,
-                result: 'hidden'
-            }, context);
-        } else {
-            logAction('hide-employer-menu-request-failed', {
-                vacancyId,
-                employerId,
-                reason: 'state-not-confirmed'
-            }, context);
-        }
-
-        await closeVacancyPageMenu(trigger, popupState.popup);
-        return hidden;
-    }
-
-    async function hideEmployerFromVacancyPage(employerId, vacancyId = null, context = null) {
-        const hiddenViaApi = await hideEmployerViaApi(employerId, vacancyId, context);
-        if (hiddenViaApi) {
-            const confirmed = vacancyId
-                ? await waitForEmployerHiddenState(vacancyId, employerId, context)
-                : true;
-
-            if (confirmed) {
-                return true;
-            }
-
+        if (!confirmed) {
             logAction('hide-employer-api-state-not-confirmed', {
                 vacancyId,
                 employerId
             }, context);
         }
 
-        return hideEmployerViaVacancyPageMenu(employerId, vacancyId, context);
+        return confirmed;
     }
 
     async function hideEmployerViaApi(employerId, vacancyId = null, context = null) {
@@ -2773,13 +2743,20 @@
     const guardedHideButtonEvents = ['pointerdown', 'mousedown', 'mouseup', 'touchstart', 'touchend'];
     guardedHideButtonEvents.forEach((eventName) => {
         document.addEventListener(eventName, (event) => {
-            if (getHideButtonFromEventTarget(event.target)) {
+            if (getHideButtonFromEventTarget(event.target) || getVacancyPageHideButtonFromEventTarget(event.target)) {
                 stopCardNavigation(event);
             }
         }, true);
     });
 
     document.addEventListener('click', (event) => {
+        const vacancyPageButton = getVacancyPageHideButtonFromEventTarget(event.target);
+        if (vacancyPageButton) {
+            stopCardNavigation(event);
+            triggerVacancyPageHideButtonAction(vacancyPageButton);
+            return;
+        }
+
         const button = getHideButtonFromEventTarget(event.target);
         if (button) {
             stopCardNavigation(event);
