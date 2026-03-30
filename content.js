@@ -535,13 +535,33 @@
         ) || null;
     }
 
-    function getVacancyPageStateAnchor() {
-        const trigger = getVacancyPageMoreActionsButton();
-        if (!(trigger instanceof HTMLElement)) {
-            return null;
+    function getVisibleVacancyPageActionContainer() {
+        const selectorCandidates = [
+            '[data-qa="primary-actions"]',
+            '.vacancy-actions',
+            '[data-qa="vacancy-actions"]'
+        ];
+
+        for (const selector of selectorCandidates) {
+            const match = Array.from(document.querySelectorAll(selector)).find(
+                (element) => element instanceof HTMLElement && isVisible(element)
+            );
+
+            if (match instanceof HTMLElement) {
+                return match;
+            }
         }
 
-        return trigger.closest('[data-qa="primary-actions"]') || trigger.closest('.vacancy-actions') || trigger.parentElement;
+        return null;
+    }
+
+    function getVacancyPageStateAnchor() {
+        const trigger = getVacancyPageMoreActionsButton();
+        if (trigger instanceof HTMLElement) {
+            return trigger.closest('[data-qa="primary-actions"]') || trigger.closest('.vacancy-actions') || trigger.parentElement;
+        }
+
+        return getVisibleVacancyPageActionContainer();
     }
 
     function getVacancyPageStateLayout(anchor) {
