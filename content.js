@@ -747,6 +747,29 @@
         }) || null;
     }
 
+    function findVacancyPageMenuAction(root, labels, includeHidden = false) {
+        const searchRoot = root instanceof HTMLElement ? root : document.body;
+        if (!(searchRoot instanceof HTMLElement)) {
+            return null;
+        }
+
+        const normalizedLabels = labels.map((label) => normalizeText(label));
+        const candidates = [searchRoot, ...searchRoot.querySelectorAll('button, a, [role="button"], [role="menuitem"], li, div[tabindex]')];
+
+        return candidates.find((element) => {
+            if (!(element instanceof HTMLElement) || (!includeHidden && !isVisible(element))) {
+                return false;
+            }
+
+            const label = getControlLabel(element);
+            if (!label || label.length > 160) {
+                return false;
+            }
+
+            return normalizedLabels.some((item) => label === item || label.includes(item));
+        }) || null;
+    }
+
     function mergeVacancyPageLabels(...groups) {
         return Array.from(new Set(groups.flat().filter(Boolean)));
     }
@@ -1120,7 +1143,7 @@
                         defaultLabel: 'Скрыть компанию',
                         successLabel: 'Компания скрыта',
                         patchState: { employerHidden: true },
-                        onHide: () => hideEmployerViaApi(employerId, vacancyId, employerButton)
+                        onHide: () => hideEmployerFromVacancyPage(employerId, vacancyId, employerButton)
                     });
                 });
                 actions.appendChild(employerButton);
@@ -2223,6 +2246,108 @@
             }, context);
             return null;
         }
+    }
+
+    async function waitForEmployerHiddenState(vacancyId, employerId, context = null, timeout = 2200, interval = 220) {
+        if (!vacancyId || !employerId) {
+            return false;
+        }
+
+        const startedAt = Date.now();
+        while (Date.now() - startedAt <= timeout) {
+            const state = await fetchVacancyBlacklistState(vacancyId, employerId, context);
+            if (state?.employerIsBlacklisted) {
+                return true;
+            }
+
+            await new Promise((resolve) => window.setTimeout(resolve, interval));
+        }
+
+        return false;
+    }
+
+    async function hideEmployerViaVacancyPageMenu(employerId, vacancyId = null, context = null) {
+        const trigger = getVacancyPageMoreActionsButton();
+        if (!(trigger instanceof HTMLElement)) {
+            logAction('hide-employer-menu-trigger-missing', {
+                vacancyId,
+                employerId
+            }, context);
+            return false;
+        }
+
+        logAction('hide-employer-menu-request-started', {
+            vacancyId,
+            employerId
+        }, context);
+
+        let popupState = findVacancyPageMenuPopup(trigger, document, true);
+        if (!popupState) {
+            clickElement(trigger);
+            popupState = await waitForVacancyPageMenuPopup(trigger);
+        }
+
+        if (!popupState?.popup) {
+            logAction('hide-employer-menu-popup-missing', {
+                vacancyId,
+                employerId
+            }, context);
+            return false;
+        }
+
+        const action = findVacancyPageMenuAction(popupState.popup, ['скрыть вакансии компании'], true);
+        if (!(action instanceof HTMLElement)) {
+            logAction('hide-employer-menu-action-missing', {
+                vacancyId,
+                employerId,
+                labels: popupState.labels
+            }, context);
+            await closeVacancyPageMenu(trigger, popupState.popup);
+            return false;
+        }
+
+        clickElement(action);
+
+        const hidden = vacancyId
+            ? await waitForEmployerHiddenState(vacancyId, employerId, context)
+            : true;
+
+        if (hidden) {
+            logAction('hide-employer-menu-request-finished', {
+                vacancyId,
+                employerId,
+                result: 'hidden'
+            }, context);
+        } else {
+            logAction('hide-employer-menu-request-failed', {
+                vacancyId,
+                employerId,
+                reason: 'state-not-confirmed'
+            }, context);
+        }
+
+        await closeVacancyPageMenu(trigger, popupState.popup);
+        return hidden;
+    }
+
+    async function hideEmployerFromVacancyPage(employerId, vacancyId = null, context = null) {
+        const hiddenViaApi = await hideEmployerViaApi(employerId, vacancyId, context);
+        if (hiddenViaApi) {
+            const confirmed = vacancyId
+                ? await waitForEmployerHiddenState(vacancyId, employerId, context)
+                : true;
+
+            if (confirmed) {
+                return true;
+            }
+
+            logAction('hide-employer-api-state-not-confirmed', {
+                vacancyId,
+                employerId
+            }, context);
+        }
+
+        return hideEmployerViaVacancyPageMenu(employerId, vacancyId, context);
     }
 
     async function hideEmployerViaApi(employerId, vacancyId = null, context = null) {
