@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Память заметок отклика</title>
+    <link rel="stylesheet" href="letters.css">
+</head>
+
+<body>
+    <main class="letters-shell">
+        <section class="letters-hero">
+            <div>
+                <p class="letters-eyebrow">HeHe</p>
+                <h1 class="letters-title">Память заметок отклика</h1>
+                <p class="letters-subtitle">
+                    Сохраняй сопроводительные письма и ответы из формы отклика, быстро обновляй их и держи под рукой
+                    разные заметки под разные вакансии.
+                </p>
+            </div>
+            <div class="letters-badge">
+                <span id="letters-total" title="Сколько заметок сохранено.">0</span>
+                <span>заметок сохранено</span>
+            </div>
+        </section>
+
+        <section class="letters-layout">
+            <form id="letter-form" class="letters-form">
+                <input id="letter-id" type="hidden">
+                <div class="panel-head">
+                    <h2>Редактор</h2>
+                    <button id="reset-form" class="ghost-button" type="button" title="Очищает редактор.">Новая
+                        заметка</button>
+                </div>
+
+                <label class="field-group" for="letter-title">
+                    <span>Название</span>
+                    <input id="letter-title" class="text-input" name="title" maxlength="120"
+                        placeholder="Например: Product Lead / ответ работодателю" required>
+                </label>
+
+                <label class="field-group" for="letter-body">
+                    <span>Текст заметки</span>
+                    <textarea id="letter-body" class="text-area" name="body" rows="12"
+                        placeholder="Введите текст заметки" required></textarea>
+                </label>
+
+                <div class="form-actions">
+                    <button id="save-letter" class="primary-button" type="submit"
+                        title="Сохраняет заметку в память.">Сохранить заметку</button>
+                    <p id="form-status" class="status-line" aria-live="polite" title="Показывает результат действия.">
+                    </p>
+                </div>
+            </form>
+
+            <section class="letters-list-panel">
+                <div class="panel-head">
+                    <h2>Сохранённые заметки</h2>
+                </div>
+                <div id="letters-list" class="letters-list"></div>
+                <template id="letter-card-template">
+                    <article class="letter-card">
+                        <button class="letter-card__main" type="button">
+                            <span class="letter-card__title"></span>
+                            <span class="letter-card__meta"></span>
+                            <span class="letter-card__preview"></span>
+                        </button>
+                        <button class="letter-card__delete" type="button">Удалить</button>
+                    </article>
+                </template>
+            </section>
+        </section>
+    </main>
+    <script src="letters.js"></script>
+</body>
+
+</html>
