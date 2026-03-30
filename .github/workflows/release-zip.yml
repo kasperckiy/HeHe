@@ -1,0 +1,66 @@
+name: Build Release ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate tag version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+
+          if [ "$VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag version $TAG_VERSION does not match manifest version $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build ZIP archive
+        shell: bash
+        run: |
+          mkdir -p dist
+          VERSION="${{ steps.version.outputs.version }}"
+          zip -r "dist/HeHe-v${VERSION}.zip" \
+            background.js \
+            content.css \
+            content.js \
+            letters.css \
+            letters.html \
+            letters.js \
+            manifest.json \
+            popup.css \
+            popup.html \
+            popup.js \
+            README.md
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeHe-v${{ steps.version.outputs.version }}
+          path: dist/HeHe-v${{ steps.version.outputs.version }}.zip
+
+      - name: Publish GitHub release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/HeHe-v${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true

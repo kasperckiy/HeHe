@@ -59,6 +59,7 @@
     let vacancyPageStateDirty = true;
     let vacancyPageState = null;
     let vacancyPageStateInspection = null;
+    let vacancyPageStateVersion = 0;
     const responseNoteControls = new WeakMap();
 
     function normalizeText(value) {
@@ -956,6 +957,7 @@
         }
 
         const vacancyId = getCurrentVacancyId();
+        const expectedStateVersion = vacancyPageStateVersion;
         if (!vacancyId) {
             vacancyPageState = null;
             vacancyPageStateDirty = false;
@@ -965,6 +967,15 @@
         vacancyPageStateInspection = (async () => {
             const employerId = getCurrentEmployerId();
             const state = await fetchVacancyBlacklistState(vacancyId, employerId);
+
+            if (expectedStateVersion !== vacancyPageStateVersion) {
+                logAction('vacancy-page-state-ignored-stale', {
+                    vacancyId,
+                    employerId,
+                    source: 'api'
+                });
+                return vacancyPageState;
+            }
 
             if (!state) {
                 vacancyPageState = null;
@@ -1036,24 +1047,36 @@
 
         root.replaceChildren();
 
-        const badges = document.createElement('div');
-        badges.className = 'hh-vacancy-page-state__badges';
+        if (state?.employerHidden) {
+            const badges = document.createElement('div');
+            badges.className = 'hh-vacancy-page-state__badges';
+
+            const badge = document.createElement('span');
+            badge.className = 'hh-vacancy-page-state__badge hh-vacancy-page-state__badge--company';
+            badge.textContent = 'Компания скрыта';
+            setHint(badge, 'Вакансии этой компании скрыты.');
+            badges.appendChild(badge);
+
+            root.appendChild(badges);
+            return;
+        }
 
         if (state?.vacancyHidden) {
+            const badges = document.createElement('div');
+            badges.className = 'hh-vacancy-page-state__badges';
+
             const badge = document.createElement('span');
             badge.className = 'hh-vacancy-page-state__badge';
             badge.textContent = 'Вакансия скрыта';
             setHint(badge, 'Эта вакансия уже скрыта.');
             badges.appendChild(badge);
+
+            root.appendChild(badges);
+            return;
         }
 
-        if (state?.employerHidden) {
-            const badge = document.createElement('span');
-            badge.className = 'hh-vacancy-page-state__badge hh-vacancy-page-state__badge--company';
-            badge.textContent = 'Работодатель скрыт';
-            setHint(badge, 'Вакансии этой компании скрыты.');
-            badges.appendChild(badge);
-        }
+        const badges = document.createElement('div');
+        badges.className = 'hh-vacancy-page-state__badges';
 
         if (badges.childElementCount > 0) {
             root.appendChild(badges);
@@ -2410,6 +2433,7 @@
             }
 
             setButtonState(button, 'success', successLabel);
+            vacancyPageStateVersion += 1;
             vacancyPageState = {
                 vacancyHidden: false,
                 employerHidden: false,
