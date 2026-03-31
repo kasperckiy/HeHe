@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "HeHe",
-    "version": "0.1.59",
+    "version": "0.1.60",
     "description": "Добавляет кнопку \"Не интересно\" в карточки вакансий hh.ru и вызывает штатное скрытие вакансии.",
     "background": {
         "service_worker": "background.js"

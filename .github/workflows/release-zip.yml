@@ -36,29 +36,29 @@ jobs:
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build ZIP archive
+      - name: Build browser package directories
         shell: bash
         run: |
-          mkdir -p dist
-          VERSION="${{ steps.version.outputs.version }}"
-          zip -r "dist/HeHe-v${VERSION}.zip" \
-            background.js \
-            content.css \
-            content.js \
-            letters.css \
-            letters.html \
-            letters.js \
-            manifest.json \
-            popup.css \
-            popup.html \
-            popup.js \
-            README.md
+          node scripts/build-browser-packages.js
 
-      - name: Upload workflow artifact
+      - name: Build ZIP archives
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          (cd dist/chromium && zip -r "../HeHe-chromium-v${VERSION}.zip" .)
+          (cd dist/firefox && zip -r "../HeHe-firefox-v${VERSION}.zip" .)
+
+      - name: Upload Chromium workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HeHe-v${{ steps.version.outputs.version }}
-          path: dist/HeHe-v${{ steps.version.outputs.version }}.zip
+          name: HeHe-chromium-v${{ steps.version.outputs.version }}
+          path: dist/HeHe-chromium-v${{ steps.version.outputs.version }}.zip
+
+      - name: Upload Firefox workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeHe-firefox-v${{ steps.version.outputs.version }}
+          path: dist/HeHe-firefox-v${{ steps.version.outputs.version }}.zip
 
       - name: Ensure GitHub release exists
         shell: bash
@@ -68,14 +68,15 @@ jobs:
           if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release create "${GITHUB_REF_NAME}" \
               --title "HeHe ${GITHUB_REF_NAME}" \
-              --generate-notes
+              --generate-notes || gh release view "${GITHUB_REF_NAME}" >/dev/null
           fi
 
-      - name: Upload GitHub release asset
+      - name: Upload GitHub release assets
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${GITHUB_REF_NAME}" \
-            "dist/HeHe-v${{ steps.version.outputs.version }}.zip" \
+            "dist/HeHe-chromium-v${{ steps.version.outputs.version }}.zip" \
+            "dist/HeHe-firefox-v${{ steps.version.outputs.version }}.zip" \
             --clobber
