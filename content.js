@@ -1,9 +1,7 @@
 (() => {
     const AUTO_HIDE_STATUS_STORAGE_KEY = 'autoHideStatusCards';
-    const DEBUG_LOGGING_STORAGE_KEY = 'debugLoggingEnabled';
     const SAVE_CUSTOM_RESPONSE_FIELDS_STORAGE_KEY = 'saveCustomResponseFields';
     const LETTERS_STORAGE_KEY = 'coverLetters';
-    const LOG_PREFIX = '[HeHe]';
     const CARD_SELECTOR = '[data-qa="vacancy-serp__vacancy"], [data-qa="serp-item"]';
     const APPLY_SELECTOR = '[data-qa="vacancy-serp__vacancy_response"]';
     const HIDE_VACANCY_API_PATH = '/applicant/blacklist/vacancy/add';
@@ -55,7 +53,6 @@
 
     let renderTimer = 0;
     let autoHideStatusCards = false;
-    let debugLoggingEnabled = false;
     let saveCustomResponseFields = false;
     let vacancyPageStateDirty = true;
     let vacancyPageState = null;
@@ -294,44 +291,9 @@
         return !elementVacancyId || elementVacancyId === expectedVacancyId;
     }
 
-    function logAction(action, details = {}, context = null) {
-        if (!debugLoggingEnabled) {
-            return;
-        }
+    function logAction() { }
 
-        const payload = {
-            action,
-            page: window.location.pathname,
-            ...details
-        };
-
-        const vacancyId = getVacancyIdFromContext(context);
-        if (vacancyId) {
-            payload.vacancyId = vacancyId;
-        }
-
-        console.log(LOG_PREFIX, payload);
-    }
-
-    function logSettingChange(setting, enabled, context = null) {
-        if (!debugLoggingEnabled && !enabled) {
-            return;
-        }
-
-        const payload = {
-            action: 'setting-changed',
-            setting,
-            enabled,
-            page: window.location.pathname
-        };
-
-        const vacancyId = getVacancyIdFromContext(context);
-        if (vacancyId) {
-            payload.vacancyId = vacancyId;
-        }
-
-        console.log(LOG_PREFIX, payload);
-    }
+    function logSettingChange() { }
 
     function isVisible(element) {
         if (!element || !(element instanceof HTMLElement)) {
@@ -529,15 +491,6 @@
 
         const result = await chrome.storage.local.get({ [AUTO_HIDE_STATUS_STORAGE_KEY]: false });
         return result[AUTO_HIDE_STATUS_STORAGE_KEY] === true;
-    }
-
-    async function readDebugLoggingSetting() {
-        if (!chrome?.storage?.local) {
-            return false;
-        }
-
-        const result = await chrome.storage.local.get({ [DEBUG_LOGGING_STORAGE_KEY]: false });
-        return result[DEBUG_LOGGING_STORAGE_KEY] === true;
     }
 
     async function readSaveCustomResponseFieldsSetting() {
@@ -2712,20 +2665,13 @@
     }
 
     async function initializeSettings() {
-        const [nextAutoHideStatusCards, nextDebugLoggingEnabled, nextSaveCustomResponseFields] = await Promise.all([
+        const [nextAutoHideStatusCards, nextSaveCustomResponseFields] = await Promise.all([
             readAutoHideStatusSetting(),
-            readDebugLoggingSetting(),
             readSaveCustomResponseFieldsSetting()
         ]);
 
         autoHideStatusCards = nextAutoHideStatusCards;
-        debugLoggingEnabled = nextDebugLoggingEnabled;
         saveCustomResponseFields = nextSaveCustomResponseFields;
-        logAction('settings-initialized', {
-            autoHideStatusCards,
-            debugLoggingEnabled,
-            saveCustomResponseFields
-        });
         renderButtons();
     }
 
@@ -2814,12 +2760,6 @@
         }
 
         let shouldRender = false;
-
-        if (changes[DEBUG_LOGGING_STORAGE_KEY]) {
-            const nextEnabled = changes[DEBUG_LOGGING_STORAGE_KEY].newValue === true;
-            logSettingChange(DEBUG_LOGGING_STORAGE_KEY, nextEnabled);
-            debugLoggingEnabled = nextEnabled;
-        }
 
         if (changes[AUTO_HIDE_STATUS_STORAGE_KEY]) {
             autoHideStatusCards = changes[AUTO_HIDE_STATUS_STORAGE_KEY].newValue === true;
