@@ -76,23 +76,42 @@ html[data-hh-hide-popup-suppressed="true"] [class*="dropdown"] {
 .hh-vacancy-page-state-layout {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
     width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
 }
 
-.hh-vacancy-page-state-layout>.vacancy-actions,
-.hh-vacancy-page-state-layout>[data-qa="primary-actions"] {
-    flex: 1 1 0;
+.hh-vacancy-page-state-layout::-webkit-scrollbar {
+    display: none;
+}
+
+.hh-vacancy-page-state-layout>.vacancy-actions {
+    order: 1;
+    flex: 1 1 auto;
     min-width: 0;
+}
+
+.hh-vacancy-page-state-layout>.hh-vacancy-page-state {
+    order: 2;
+    flex: 0 0 auto;
+}
+
+.hh-vacancy-page-state-layout>[data-qa="primary-actions"] {
+    order: 3;
+    flex: 0 0 auto;
+    min-width: max-content;
 }
 
 .hh-vacancy-page-state {
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;
     max-width: 100%;
 }
 
@@ -100,13 +119,16 @@ html[data-hh-hide-popup-suppressed="true"] [class*="dropdown"] {
 .hh-vacancy-page-state__actions {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;
     max-width: 100%;
 }
 
 .hh-vacancy-page-state__actions .hh-hide-vacancy-button {
-    min-height: 44px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 14px;
+    font-size: 14px;
 }
 
 .hh-vacancy-page-state__badge {
