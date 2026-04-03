@@ -571,6 +571,19 @@
         return layout;
     }
 
+    function isResponsePopupContext(element) {
+        if (!(element instanceof HTMLElement)) {
+            return false;
+        }
+
+        const dialog = element.closest('[role="dialog"]');
+        if (!(dialog instanceof HTMLElement)) {
+            return false;
+        }
+
+        return !!dialog.querySelector(RESPONSE_FORM_SELECTOR);
+    }
+
     function hasKnownWorkflowStatus(card) {
         for (const selector of AUTO_HIDE_STATUS_SELECTORS) {
             const match = card.querySelector(selector);
@@ -1056,8 +1069,9 @@
         );
         const vacancyId = getCurrentVacancyId();
         const employerId = getCurrentEmployerId();
+        const hideEmployerActionInPopup = isResponsePopupContext(anchor) || isResponsePopupContext(layout);
         const hasState = !!state && (state.vacancyHidden || state.employerHidden);
-        const hasActions = !!vacancyId || !!employerId;
+        const hasActions = !!vacancyId || (!!employerId && !hideEmployerActionInPopup);
 
         if ((!hasState && !hasActions) || !(anchor instanceof HTMLElement) || !(layout instanceof HTMLElement)) {
             roots.forEach((root) => root.remove());
@@ -1146,7 +1160,7 @@
                 actions.appendChild(vacancyButton);
             }
 
-            if (employerId) {
+            if (employerId && !hideEmployerActionInPopup) {
                 const employerButton = createHideButton('Скрыть компанию');
                 employerButton.setAttribute(VACANCY_PAGE_HIDE_BUTTON_MARKER, 'true');
                 employerButton.dataset.hideTarget = 'employer';
