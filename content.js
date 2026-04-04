@@ -2,6 +2,7 @@
     const AUTO_HIDE_STATUS_STORAGE_KEY = 'autoHideStatusCards';
     const SAVE_CUSTOM_RESPONSE_FIELDS_STORAGE_KEY = 'saveCustomResponseFields';
     const LETTERS_STORAGE_KEY = 'coverLetters';
+    const GEMINI_REWRITE_TEXT_MESSAGE = 'gemini-rewrite-text';
     const CARD_SELECTOR = '[data-qa="vacancy-serp__vacancy"], [data-qa="serp-item"]';
     const APPLY_SELECTOR = '[data-qa="vacancy-serp__vacancy_response"]';
     const HIDE_VACANCY_API_PATH = '/applicant/blacklist/vacancy/add';
@@ -19,6 +20,7 @@
     const COVER_LETTER_FORM_SELECTOR = 'form[id^="cover-letter-"]';
     const RESPONSE_NOTE_FORM_SELECTOR = `${RESPONSE_FORM_SELECTOR}, ${COVER_LETTER_FORM_SELECTOR}`;
     const RESPONSE_NOTE_CONTROL_MARKER = 'data-hh-response-note-control';
+    const GEMINI_REWRITE_CONTROL_MARKER = 'data-hh-gemini-rewrite-control';
     const COVER_LETTER_TEXTAREA_SELECTORS = [
         'textarea[data-qa="vacancy-response-popup-form-letter-input"]',
         '[data-qa="vacancy-response-letter-informer"] textarea[name="text"]',
@@ -59,6 +61,7 @@
     let vacancyPageStateInspection = null;
     let vacancyPageStateVersion = 0;
     const responseNoteControls = new WeakMap();
+    const geminiRewriteControls = new WeakMap();
 
     function normalizeText(value) {
         return (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -1333,6 +1336,18 @@
         return saveCustomResponseFields && isResponseCustomFieldTextarea(textarea);
     }
 
+    function isGeminiRewriteEligible(textarea) {
+        if (!(textarea instanceof HTMLTextAreaElement) || !isVisible(textarea)) {
+            return false;
+        }
+
+        if (!(textarea.form instanceof HTMLFormElement) || !textarea.form.matches(RESPONSE_NOTE_FORM_SELECTOR)) {
+            return false;
+        }
+
+        return isCoverLetterTextarea(textarea) || isResponseCustomFieldTextarea(textarea);
+    }
+
     function getResponseNoteDefaultTitle(textarea) {
         if (!(textarea instanceof HTMLTextAreaElement)) {
             return 'Заметка';
@@ -1357,6 +1372,175 @@
         }
 
         return textarea.closest('[data-qa="textarea-wrapper"]') || textarea.parentElement;
+    }
+
+    function getGeminiRewriteControlRoot(textarea) {
+        const storedRoot = geminiRewriteControls.get(textarea);
+        if (storedRoot instanceof HTMLElement && storedRoot.isConnected) {
+            return storedRoot;
+        }
+
+        return null;
+    }
+
+    function getGeminiRewriteControlNodes(textarea) {
+        const root = getGeminiRewriteControlRoot(textarea);
+        if (!(root instanceof HTMLElement)) {
+            return null;
+        }
+
+        const button = root.querySelector('.hh-gemini-rewrite-control__button');
+        const status = root.querySelector('.hh-gemini-rewrite-control__status');
+        if (!(button instanceof HTMLButtonElement) || !(status instanceof HTMLElement)) {
+            return null;
+        }
+
+        return { root, button, status };
+    }
+
+    function setGeminiRewriteControlState(textarea, state, statusText = '', statusHint = statusText) {
+        const nodes = getGeminiRewriteControlNodes(textarea);
+        if (!nodes) {
+            return;
+        }
+
+        if (state) {
+            nodes.root.dataset.state = state;
+        } else {
+            delete nodes.root.dataset.state;
+        }
+
+        nodes.button.disabled = state === 'busy';
+        nodes.button.textContent = state === 'busy' ? 'Переписываю...' : 'Переписать с Gemini';
+        setHint(
+            nodes.button,
+            state === 'busy'
+                ? 'Отправляет текст в Gemini.'
+                : 'Отправляет текст в Gemini и заменяет содержимое поля.'
+        );
+
+        if (statusText) {
+            nodes.status.hidden = false;
+            setTextWithHint(nodes.status, statusText, statusHint);
+            return;
+        }
+
+        nodes.status.hidden = true;
+        setTextWithHint(nodes.status, '', '');
+    }
+
+    function removeGeminiRewriteControl(textarea) {
+        const root = getGeminiRewriteControlRoot(textarea);
+        if (root instanceof HTMLElement) {
+            root.remove();
+        }
+
+        geminiRewriteControls.delete(textarea);
+    }
+
+    async function rewriteTextareaWithGemini(textarea) {
+        const text = textarea.value.trim();
+        if (!text) {
+            setGeminiRewriteControlState(textarea, 'error', 'Сначала введи текст в поле.', 'Поле пустое.');
+            textarea.focus();
+            return;
+        }
+
+        setGeminiRewriteControlState(textarea, 'busy', 'Переписываю текст...', 'Отправляет текст в Gemini.');
+
+        try {
+            const response = await sendRuntimeMessage({
+                type: GEMINI_REWRITE_TEXT_MESSAGE,
+                text: textarea.value,
+                fieldLabel: getResponseFormFieldLabel(textarea) || getResponseNoteDefaultTitle(textarea),
+                vacancyTitle: textarea.form instanceof HTMLFormElement ? getResponseFormVacancyTitle(textarea.form) : '',
+                vacancyId: getCurrentVacancyId()
+            });
+
+            if (!response?.ok || typeof response?.text !== 'string') {
+                setGeminiRewriteControlState(
+                    textarea,
+                    'error',
+                    response?.reason || 'Не удалось переписать текст. Попробуй ещё раз.',
+                    response?.reason || 'Gemini rewrite failed.'
+                );
+                return;
+            }
+
+            setNativeTextValue(textarea, response.text);
+            textarea.focus();
+            setGeminiRewriteControlState(
+                textarea,
+                'success',
+                'Текст переписан.',
+                `Модель: ${response.modelLabel || response.modelId || 'Gemini'}. Режим: ${response.presetLabel || response.presetId || 'rewrite'}.`
+            );
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            setGeminiRewriteControlState(textarea, 'error', reason || 'Не удалось переписать текст.', reason);
+        }
+    }
+
+    function ensureGeminiRewriteControl(textarea) {
+        if (!(textarea instanceof HTMLTextAreaElement)) {
+            return false;
+        }
+
+        if (!isGeminiRewriteEligible(textarea)) {
+            removeGeminiRewriteControl(textarea);
+            return false;
+        }
+
+        const anchor = getResponseNoteAnchor(textarea);
+        if (!(anchor instanceof HTMLElement) || !(anchor.parentElement instanceof HTMLElement)) {
+            return false;
+        }
+
+        let root = getGeminiRewriteControlRoot(textarea);
+        if (!(root instanceof HTMLElement)) {
+            root = document.createElement('div');
+            root.className = 'hh-gemini-rewrite-control';
+            root.setAttribute(GEMINI_REWRITE_CONTROL_MARKER, 'true');
+
+            const row = document.createElement('div');
+            row.className = 'hh-gemini-rewrite-control__row';
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'hh-cover-letter-picker__button hh-gemini-rewrite-control__button';
+            button.textContent = 'Переписать с Gemini';
+            setHint(button, 'Отправляет текст в Gemini и заменяет содержимое поля.');
+
+            const status = document.createElement('p');
+            status.className = 'hh-gemini-rewrite-control__status';
+            status.hidden = true;
+
+            button.addEventListener('click', () => {
+                void rewriteTextareaWithGemini(textarea);
+            });
+
+            textarea.addEventListener('input', () => {
+                const nodes = getGeminiRewriteControlNodes(textarea);
+                if (nodes && nodes.root.dataset.state !== 'busy') {
+                    setGeminiRewriteControlState(textarea, '', '', '');
+                }
+            });
+
+            row.appendChild(button);
+            root.append(row, status);
+
+            const responseNoteRoot = getResponseNoteControlRoot(textarea);
+            if (responseNoteRoot instanceof HTMLElement) {
+                responseNoteRoot.insertAdjacentElement('afterend', root);
+            } else {
+                anchor.insertAdjacentElement('afterend', root);
+            }
+
+            geminiRewriteControls.set(textarea, root);
+        }
+
+        setGeminiRewriteControlState(textarea, '', '', '');
+        return true;
     }
 
     function getResponseNoteControlRoot(textarea) {
@@ -2647,6 +2831,12 @@
         }
     }
 
+    function renderGeminiRewriteControls() {
+        for (const textarea of getResponseNoteTextareas()) {
+            ensureGeminiRewriteControl(textarea);
+        }
+    }
+
     function renderButtons() {
         if (!autoHideStatusCards) {
             restoreAutoHiddenCards();
@@ -2670,6 +2860,7 @@
 
         renderCoverLetterPickers();
         renderResponseNoteControls();
+        renderGeminiRewriteControls();
         void renderVacancyPageState();
     }
 

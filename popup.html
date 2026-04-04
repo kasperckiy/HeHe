@@ -37,6 +37,26 @@
                     <span class="popup-switch__track"></span>
                 </label>
             </div>
+            <div class="popup-setting">
+                <p class="popup-toggle__eyebrow">Gemini Rewrite</p>
+                <p class="popup-toggle__label">Переписывать текст в textarea</p>
+                <p class="popup-toggle__hint">Текст отправляется в Gemini только по явному нажатию кнопки рядом с полем. API key хранится локально в браузере.</p>
+                <label class="popup-setting__field" for="gemini-api-key">
+                    <span class="popup-setting__field-label">Gemini API key</span>
+                    <input id="gemini-api-key" class="popup-setting__input" type="password" placeholder="Вставь ключ из Google AI Studio" autocomplete="off" spellcheck="false" title="Хранится локально в браузере.">
+                </label>
+                <p id="gemini-api-key-status" class="popup-setting__meta" title="Показывает состояние локально сохранённого ключа."></p>
+                <label class="popup-setting__field" for="gemini-model">
+                    <span class="popup-setting__field-label">Модель</span>
+                    <select id="gemini-model" class="popup-setting__select" title="Выбирает Gemini-модель для переписывания."></select>
+                </label>
+                <p id="gemini-model-hint" class="popup-setting__meta" title="Краткое описание выбранной модели."></p>
+                <label class="popup-setting__field" for="gemini-preset">
+                    <span class="popup-setting__field-label">Режим</span>
+                    <select id="gemini-preset" class="popup-setting__select" title="Выбирает стиль переписывания."></select>
+                </label>
+                <p id="gemini-preset-hint" class="popup-setting__meta" title="Краткое описание выбранного режима."></p>
+            </div>
             <p class="popup-eyebrow">Заметки расширения</p>
             <h1 class="popup-title">Заметки отклика</h1>
             <p class="popup-description">

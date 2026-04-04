@@ -37,6 +37,55 @@ body {
     border: 1px solid rgba(123, 155, 191, 0.22);
 }
 
+.popup-setting {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 14px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(233, 242, 252, 0.95) 0%, rgba(245, 249, 255, 0.95) 100%);
+    border: 1px solid rgba(123, 155, 191, 0.22);
+}
+
+.popup-setting__field {
+    display: grid;
+    gap: 6px;
+}
+
+.popup-setting__field-label {
+    color: #58728d;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.popup-setting__input,
+.popup-setting__select {
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid #d8e2f0;
+    border-radius: 14px;
+    color: #17324d;
+    font: inherit;
+    font-size: 14px;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.popup-setting__input:focus,
+.popup-setting__select:focus {
+    outline: 2px solid rgba(63, 119, 181, 0.24);
+    outline-offset: 2px;
+    border-color: #9bbde0;
+}
+
+.popup-setting__meta {
+    margin: -2px 0 0;
+    color: #59738d;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .popup-toggle__eyebrow {
     margin: 0;
     color: #5f7d99;

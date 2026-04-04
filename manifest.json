@@ -1,13 +1,16 @@
 {
     "manifest_version": 3,
     "name": "HeHe",
-    "version": "0.1.63",
+    "version": "0.1.64",
     "description": "Добавляет кнопку \"Не интересно\" в карточки вакансий hh.ru и вызывает штатное скрытие вакансии.",
     "background": {
         "service_worker": "background.js"
     },
     "permissions": [
         "storage"
+    ],
+    "host_permissions": [
+        "https://generativelanguage.googleapis.com/*"
     ],
     "action": {
         "default_title": "HeHe",

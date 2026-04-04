@@ -15,6 +15,7 @@ const sourceFiles = [
     'popup.css',
     'popup.html',
     'popup.js',
+    'prompts/gemini-rewrite.json',
     'README.md'
 ];
 
