@@ -1191,7 +1191,10 @@
             actions.className = 'hh-vacancy-page-state__actions';
 
             if (vacancyId) {
-                const vacancyButton = createHideButton('Скрыть вакансию');
+                const vacancyButton = createHideButton('Скрыть вакансию', {
+                    iconOnly: true,
+                    iconKind: 'vacancy'
+                });
                 vacancyButton.setAttribute(VACANCY_PAGE_HIDE_BUTTON_MARKER, 'true');
                 vacancyButton.dataset.hideTarget = 'vacancy';
                 if (state?.vacancyHidden) {
@@ -1201,7 +1204,10 @@
             }
 
             if (employerId && !hideEmployerActionInPopup) {
-                const employerButton = createHideButton('Скрыть компанию');
+                const employerButton = createHideButton('Скрыть компанию', {
+                    iconOnly: true,
+                    iconKind: 'company'
+                });
                 employerButton.setAttribute(VACANCY_PAGE_HIDE_BUTTON_MARKER, 'true');
                 employerButton.dataset.hideTarget = 'employer';
                 if (state?.employerHidden) {
@@ -2500,7 +2506,7 @@
             delete button.dataset.state;
         }
 
-        button.textContent = label;
+        syncHideButtonContent(button, label);
         button.disabled = state === 'busy' || state === 'success';
 
         if (state === 'busy') {
@@ -2519,6 +2525,71 @@
         }
 
         setHint(button, button.dataset.defaultHint || label);
+    }
+
+    function createHideButtonIcon(state, iconKind) {
+        const svgNamespace = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNamespace, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        svg.classList.add('hh-hide-vacancy-button__icon');
+
+        const appendPath = (d) => {
+            const path = document.createElementNS(svgNamespace, 'path');
+            path.setAttribute('d', d);
+            svg.appendChild(path);
+        };
+
+        if (state === 'busy') {
+            svg.classList.add('hh-hide-vacancy-button__icon--spinning');
+            appendPath('M12 3.75A8.25 8.25 0 1 0 20.25 12');
+            appendPath('M12 3.75A8.25 8.25 0 0 1 20.25 12');
+            return svg;
+        }
+
+        if (state === 'success') {
+            appendPath('M5.5 12.5 9.5 16.5 18.5 7.5');
+            return svg;
+        }
+
+        if (state === 'error') {
+            appendPath('M7 7 17 17');
+            appendPath('M17 7 7 17');
+            return svg;
+        }
+
+        if (iconKind === 'company') {
+            appendPath('M5 20h14');
+            appendPath('M7 20V7.5A1.5 1.5 0 0 1 8.5 6H11v14');
+            appendPath('M13 20V4.5A1.5 1.5 0 0 1 14.5 3h2A1.5 1.5 0 0 1 18 4.5V20');
+            appendPath('M9 9.5h.01');
+            appendPath('M9 13h.01');
+            appendPath('M15.5 7h.01');
+            appendPath('M15.5 10.5h.01');
+            appendPath('M4.5 4.5 19.5 19.5');
+            return svg;
+        }
+
+        appendPath('M2.75 12s3.3-5.25 9.25-5.25S21.25 12 21.25 12s-3.3 5.25-9.25 5.25S2.75 12 2.75 12Z');
+        appendPath('M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z');
+        appendPath('M4 4 20 20');
+        return svg;
+    }
+
+    function syncHideButtonContent(button, label) {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        if (button.dataset.iconOnly !== 'true') {
+            button.textContent = label;
+            return;
+        }
+
+        const icon = createHideButtonIcon(button.dataset.state || '', button.dataset.iconKind || 'vacancy');
+        button.replaceChildren(icon);
+        button.setAttribute('aria-label', label);
     }
 
     function isCardEffectivelyHidden(card) {
@@ -2541,12 +2612,19 @@
         return !isVisible(card);
     }
 
-    function createHideButton(label) {
+    function createHideButton(label, options = {}) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'hh-hide-vacancy-button';
-        button.textContent = label;
         button.dataset.defaultLabel = label;
+
+        if (options.iconOnly) {
+            button.dataset.iconOnly = 'true';
+            button.dataset.iconKind = options.iconKind || 'vacancy';
+            button.classList.add('hh-hide-vacancy-button--icon');
+        }
+
+        syncHideButtonContent(button, label);
 
         if (label === 'Скрыть компанию') {
             button.dataset.defaultHint = 'Скрывает вакансии этой компании.';

@@ -57,6 +57,58 @@
     color: #a33b32;
 }
 
+.hh-hide-vacancy-button--icon {
+    width: 48px;
+    min-width: 48px;
+    padding: 0;
+    border-radius: 16px;
+    border-color: #bfd3eb;
+    background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+    color: #165fbf;
+    box-shadow: 0 4px 10px rgba(22, 95, 191, 0.12);
+}
+
+.hh-hide-vacancy-button__icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hh-hide-vacancy-button--icon[data-icon-kind="company"] {
+    color: #1f4f7a;
+    background: linear-gradient(180deg, #f9fbff 0%, #eff4fb 100%);
+}
+
+.hh-hide-vacancy-button--icon:hover {
+    background: linear-gradient(180deg, #f1f8ff 0%, #e5f0ff 100%);
+    border-color: #9cbce5;
+    color: #0f54af;
+    box-shadow: 0 6px 14px rgba(22, 95, 191, 0.16);
+}
+
+.hh-hide-vacancy-button--icon[data-icon-kind="company"]:hover {
+    color: #173f63;
+}
+
+.hh-hide-vacancy-button__icon--spinning {
+    animation: hh-hide-vacancy-button-spin 0.8s linear infinite;
+}
+
+@keyframes hh-hide-vacancy-button-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 html[data-hh-hide-popup-suppressed="true"] [role="menu"],
 html[data-hh-hide-popup-suppressed="true"] [role="dialog"],
 html[data-hh-hide-popup-suppressed="true"] [role="tooltip"],
@@ -91,8 +143,8 @@ html[data-hh-hide-popup-suppressed="true"] [class*="dropdown"] {
 
 .hh-vacancy-page-state-layout>.vacancy-actions {
     order: 1;
-    flex: 1 1 auto;
-    min-width: 0;
+    flex-wrap: nowrap;
+    min-width: max-content;
 }
 
 .hh-vacancy-page-state-layout>.hh-vacancy-page-state {
@@ -102,8 +154,6 @@ html[data-hh-hide-popup-suppressed="true"] [class*="dropdown"] {
 
 .hh-vacancy-page-state-layout>[data-qa="primary-actions"] {
     order: 3;
-    flex: 0 0 auto;
-    min-width: max-content;
 }
 
 .hh-vacancy-page-state {
@@ -125,10 +175,16 @@ html[data-hh-hide-popup-suppressed="true"] [class*="dropdown"] {
 }
 
 .hh-vacancy-page-state__actions .hh-hide-vacancy-button {
-    min-height: 40px;
-    padding: 0 14px;
-    border-radius: 14px;
+    min-height: 48px;
+    padding: 0 16px;
+    border-radius: 16px;
     font-size: 14px;
+}
+
+.hh-vacancy-page-state__actions .hh-hide-vacancy-button--icon {
+    width: 48px;
+    min-width: 48px;
+    padding: 0;
 }
 
 .hh-vacancy-page-state__badge {
