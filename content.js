@@ -1460,11 +1460,12 @@
             (button) => button instanceof HTMLButtonElement
         );
         const status = root.querySelector('.hh-gemini-rewrite-control__status');
-        if (!buttons.length || !(status instanceof HTMLElement)) {
+        const progress = root.querySelector('.hh-gemini-rewrite-control__progress');
+        if (!buttons.length || !(status instanceof HTMLElement) || !(progress instanceof HTMLElement)) {
             return null;
         }
 
-        return { root, buttons, status };
+        return { root, buttons, status, progress };
     }
 
     function setGeminiRewriteControlState(textarea, state, statusText = '', statusHint = statusText, activePresetId = '') {
@@ -1479,11 +1480,15 @@
             delete nodes.root.dataset.state;
         }
 
+        nodes.root.setAttribute('aria-busy', state === 'busy' ? 'true' : 'false');
+
         if (activePresetId) {
             nodes.root.dataset.activePresetId = activePresetId;
         } else {
             delete nodes.root.dataset.activePresetId;
         }
+
+        nodes.progress.hidden = state !== 'busy';
 
         nodes.buttons.forEach((button) => {
             const isActive = !!activePresetId && button.dataset.presetId === activePresetId;
@@ -1633,12 +1638,21 @@
                 icon.className = 'hh-gemini-rewrite-control__button-icon';
                 icon.innerHTML = getGeminiRewriteIconMarkup(preset.icon);
 
+                const loader = document.createElement('span');
+                loader.className = 'hh-gemini-rewrite-control__button-loader';
+                loader.setAttribute('aria-hidden', 'true');
+
                 button.appendChild(icon);
+                button.appendChild(loader);
                 button.addEventListener('click', () => {
                     void rewriteTextareaWithGemini(textarea, preset.id);
                 });
                 row.appendChild(button);
             });
+
+            const progress = document.createElement('span');
+            progress.className = 'hh-gemini-rewrite-control__progress';
+            progress.hidden = true;
 
             const status = document.createElement('p');
             status.className = 'hh-gemini-rewrite-control__status';
@@ -1651,7 +1665,7 @@
                 }
             });
 
-            root.append(row, status);
+            root.append(row, progress, status);
 
             geminiRewriteControls.set(textarea, root);
         }
@@ -1671,7 +1685,10 @@
             root.dataset.position = 'stacked';
         }
 
-        setGeminiRewriteControlState(textarea, '', '', '', '');
+        const existingState = root.dataset.state || '';
+        if (!existingState) {
+            setGeminiRewriteControlState(textarea, '', '', '', '');
+        }
         return true;
     }
 

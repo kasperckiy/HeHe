@@ -1,5 +1,6 @@
 sources/
 .vscode/
 dist/
+stores/
 node_modules/
 CHROME_STORE_DRAFT_LOCAL.md
