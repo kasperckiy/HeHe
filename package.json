@@ -2,8 +2,12 @@
     "name": "hehe-build-tools",
     "private": true,
     "scripts": {
+        "build:icons": "node scripts/generate-icons.js",
         "build:packages": "node scripts/build-browser-packages.js",
         "build:chromium": "node scripts/build-browser-packages.js chromium",
         "build:firefox": "node scripts/build-browser-packages.js firefox"
+    },
+    "devDependencies": {
+        "sharp": "^0.34.5"
     }
 }
