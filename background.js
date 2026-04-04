@@ -2,7 +2,6 @@ const OPEN_LETTERS_PAGE_MESSAGE = 'open-letters-page';
 const GEMINI_REWRITE_TEXT_MESSAGE = 'gemini-rewrite-text';
 const GEMINI_API_KEY_STORAGE_KEY = 'geminiApiKey';
 const GEMINI_MODEL_STORAGE_KEY = 'geminiModelId';
-const GEMINI_PRESET_STORAGE_KEY = 'geminiRewritePreset';
 const GEMINI_REWRITE_CONFIG_PATH = 'prompts/gemini-rewrite.json';
 
 let geminiRewriteConfigPromise = null;
@@ -29,8 +28,7 @@ async function loadGeminiRewriteConfig() {
 async function readGeminiSettings() {
     return chrome.storage.local.get({
         [GEMINI_API_KEY_STORAGE_KEY]: '',
-        [GEMINI_MODEL_STORAGE_KEY]: '',
-        [GEMINI_PRESET_STORAGE_KEY]: ''
+        [GEMINI_MODEL_STORAGE_KEY]: ''
     });
 }
 
@@ -134,7 +132,7 @@ async function handleGeminiRewriteText(message) {
 
     const preset = findGeminiConfigEntry(
         config?.presets,
-        settings[GEMINI_PRESET_STORAGE_KEY],
+        typeof message?.presetId === 'string' ? message.presetId.trim() : '',
         config?.defaultPresetId
     );
     if (!preset?.id) {

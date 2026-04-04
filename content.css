@@ -367,37 +367,84 @@ html[data-hh-hide-popup-suppressed="true"] [class*="dropdown"] {
 }
 
 .hh-gemini-rewrite-control {
-    display: grid;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     margin: 8px 0 14px;
+}
+
+.hh-gemini-rewrite-control[data-position="inline"] {
+    margin: 0;
 }
 
 .hh-gemini-rewrite-control__row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
 }
 
 .hh-gemini-rewrite-control__button {
-    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #d7e3f0;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #42698c;
+    cursor: pointer;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, opacity 0.16s ease;
 }
 
-.hh-gemini-rewrite-control[data-state="busy"] .hh-gemini-rewrite-control__button {
+.hh-gemini-rewrite-control__button:hover {
+    border-color: #b8cde4;
+    background: #f5f9ff;
+    color: #1f4f7a;
+}
+
+.hh-gemini-rewrite-control__button:disabled {
     opacity: 0.75;
     cursor: wait;
 }
 
-.hh-gemini-rewrite-control[data-state="success"] .hh-gemini-rewrite-control__button {
+.hh-gemini-rewrite-control__button[data-state="success"] {
     border-color: #b8dfc6;
     background: #f3fbf5;
     color: #20653a;
 }
 
-.hh-gemini-rewrite-control[data-state="error"] .hh-gemini-rewrite-control__button {
+.hh-gemini-rewrite-control__button[data-state="error"] {
     border-color: #efc0bc;
     background: #fff7f6;
     color: #a33b32;
+}
+
+.hh-gemini-rewrite-control__button[data-state="busy"] {
+    border-color: #b8cde4;
+    background: #f3f8ff;
+    color: #1f4f7a;
+}
+
+.hh-gemini-rewrite-control__button-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+}
+
+.hh-gemini-rewrite-control__button-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .hh-gemini-rewrite-control__status {

@@ -3,7 +3,6 @@ const SAVE_CUSTOM_RESPONSE_FIELDS_STORAGE_KEY = 'saveCustomResponseFields';
 const LETTERS_STORAGE_KEY = 'coverLetters';
 const GEMINI_API_KEY_STORAGE_KEY = 'geminiApiKey';
 const GEMINI_MODEL_STORAGE_KEY = 'geminiModelId';
-const GEMINI_PRESET_STORAGE_KEY = 'geminiRewritePreset';
 const GEMINI_REWRITE_CONFIG_PATH = 'prompts/gemini-rewrite.json';
 
 function normalizeLetters(value) {
@@ -20,13 +19,16 @@ async function readSettings() {
         [AUTO_HIDE_STATUS_STORAGE_KEY]: false,
         [SAVE_CUSTOM_RESPONSE_FIELDS_STORAGE_KEY]: true,
         [GEMINI_API_KEY_STORAGE_KEY]: '',
-        [GEMINI_MODEL_STORAGE_KEY]: '',
-        [GEMINI_PRESET_STORAGE_KEY]: ''
+        [GEMINI_MODEL_STORAGE_KEY]: ''
     });
 }
 
 async function writeSetting(key, value) {
     await chrome.storage.local.set({ [key]: value });
+}
+
+async function removeSetting(key) {
+    await chrome.storage.local.remove(key);
 }
 
 async function loadGeminiRewriteConfig() {
@@ -127,8 +129,6 @@ async function bootstrapPopup() {
     const geminiApiKeyStatus = document.getElementById('gemini-api-key-status');
     const geminiModelSelect = document.getElementById('gemini-model');
     const geminiModelHint = document.getElementById('gemini-model-hint');
-    const geminiPresetSelect = document.getElementById('gemini-preset');
-    const geminiPresetHint = document.getElementById('gemini-preset-hint');
 
     autoHideToggle.checked = settings[AUTO_HIDE_STATUS_STORAGE_KEY] === true;
     saveCustomFieldsToggle.checked = settings[SAVE_CUSTOM_RESPONSE_FIELDS_STORAGE_KEY] === true;
@@ -140,24 +140,15 @@ async function bootstrapPopup() {
         settings[GEMINI_MODEL_STORAGE_KEY],
         geminiConfig.defaultModelId
     );
-    const selectedPreset = populateSelect(
-        geminiPresetSelect,
-        geminiConfig.presets || [],
-        settings[GEMINI_PRESET_STORAGE_KEY],
-        geminiConfig.defaultPresetId
-    );
 
     updateGeminiApiKeyStatus(geminiApiKeyInput, geminiApiKeyStatus);
     updateConfigEntryHint(geminiModelSelect, geminiConfig.models || [], geminiModelHint);
-    updateConfigEntryHint(geminiPresetSelect, geminiConfig.presets || [], geminiPresetHint);
 
     if (selectedModel?.id && settings[GEMINI_MODEL_STORAGE_KEY] !== selectedModel.id) {
         void writeSetting(GEMINI_MODEL_STORAGE_KEY, selectedModel.id);
     }
 
-    if (selectedPreset?.id && settings[GEMINI_PRESET_STORAGE_KEY] !== selectedPreset.id) {
-        void writeSetting(GEMINI_PRESET_STORAGE_KEY, selectedPreset.id);
-    }
+    void removeSetting('geminiRewritePreset');
 
     autoHideToggle.addEventListener('change', () => {
         void writeSetting(AUTO_HIDE_STATUS_STORAGE_KEY, autoHideToggle.checked);
@@ -176,11 +167,6 @@ async function bootstrapPopup() {
     geminiModelSelect.addEventListener('change', () => {
         updateConfigEntryHint(geminiModelSelect, geminiConfig.models || [], geminiModelHint);
         void writeSetting(GEMINI_MODEL_STORAGE_KEY, geminiModelSelect.value);
-    });
-
-    geminiPresetSelect.addEventListener('change', () => {
-        updateConfigEntryHint(geminiPresetSelect, geminiConfig.presets || [], geminiPresetHint);
-        void writeSetting(GEMINI_PRESET_STORAGE_KEY, geminiPresetSelect.value);
     });
 
     document.getElementById('open-letters').addEventListener('click', () => {

@@ -52,6 +52,43 @@
         'button[aria-expanded="false"]',
         'button[aria-expanded="true"]'
     ];
+    const GEMINI_REWRITE_PRESETS = [
+        {
+            id: 'grammar-fix',
+            label: 'Грамматика',
+            hint: 'Исправляет грамматику и пунктуацию без смены смысла.',
+            busyHint: 'Исправляет грамматику и пунктуацию в Gemini.',
+            icon: 'grammar'
+        },
+        {
+            id: 'translate-close',
+            label: 'Перевод RU/EN',
+            hint: 'Переводит максимально близко между русским и английским без отсебятины.',
+            busyHint: 'Переводит текст через Gemini без добавления новых фактов.',
+            icon: 'translate'
+        },
+        {
+            id: 'rewrite-clean',
+            label: 'Чище',
+            hint: 'Делает текст яснее и мягче, сохраняя факты.',
+            busyHint: 'Переписывает текст мягче и чище в Gemini.',
+            icon: 'clean'
+        },
+        {
+            id: 'rewrite-strong',
+            label: 'Сильнее',
+            hint: 'Делает подачу увереннее без преувеличений.',
+            busyHint: 'Усиливает подачу текста через Gemini.',
+            icon: 'strong'
+        },
+        {
+            id: 'rewrite-compact',
+            label: 'Короче',
+            hint: 'Сжимает текст без потери ключевого смысла.',
+            busyHint: 'Сокращает текст через Gemini без потери смысла.',
+            icon: 'compact'
+        }
+    ];
 
     let renderTimer = 0;
     let autoHideStatusCards = false;
@@ -1374,6 +1411,36 @@
         return textarea.closest('[data-qa="textarea-wrapper"]') || textarea.parentElement;
     }
 
+    function getLetterPickerRoot(textarea) {
+        const anchor = getLetterPickerAnchor(textarea);
+        if (!(anchor instanceof HTMLElement)) {
+            return null;
+        }
+
+        const sibling = anchor.previousElementSibling;
+        if (sibling instanceof HTMLElement && sibling.hasAttribute(LETTER_PICKER_MARKER)) {
+            return sibling;
+        }
+
+        return null;
+    }
+
+    function getGeminiRewritePresetDefinition(presetId) {
+        return GEMINI_REWRITE_PRESETS.find((preset) => preset.id === presetId) || null;
+    }
+
+    function getGeminiRewriteIconMarkup(icon) {
+        const icons = {
+            grammar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M4 12h7M4 17h9"></path><path d="M14 13.5 16.5 16 21 11.5"></path></svg>',
+            translate: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11"></path><path d="m12 3 3.5 4L12 11"></path><path d="M20 17H9"></path><path d="m12 13-3.5 4 3.5 4"></path></svg>',
+            clean: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 18 7-7"></path><path d="m10 7 2-2"></path><path d="m13 4 1-1"></path><path d="m14 10 6-6"></path><path d="M13 11 6 18"></path><path d="m15 13 1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5z"></path></svg>',
+            strong: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17 10 12 13 15 19 9"></path><path d="M15 9h4v4"></path><path d="M5 5v14h14"></path></svg>',
+            compact: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h7"></path><path d="m9 4 5 5-5 5"></path><path d="M20 15h-7"></path><path d="m15 10-5 5 5 5"></path></svg>'
+        };
+
+        return icons[icon] || icons.clean;
+    }
+
     function getGeminiRewriteControlRoot(textarea) {
         const storedRoot = geminiRewriteControls.get(textarea);
         if (storedRoot instanceof HTMLElement && storedRoot.isConnected) {
@@ -1389,16 +1456,18 @@
             return null;
         }
 
-        const button = root.querySelector('.hh-gemini-rewrite-control__button');
+        const buttons = Array.from(root.querySelectorAll('.hh-gemini-rewrite-control__button')).filter(
+            (button) => button instanceof HTMLButtonElement
+        );
         const status = root.querySelector('.hh-gemini-rewrite-control__status');
-        if (!(button instanceof HTMLButtonElement) || !(status instanceof HTMLElement)) {
+        if (!buttons.length || !(status instanceof HTMLElement)) {
             return null;
         }
 
-        return { root, button, status };
+        return { root, buttons, status };
     }
 
-    function setGeminiRewriteControlState(textarea, state, statusText = '', statusHint = statusText) {
+    function setGeminiRewriteControlState(textarea, state, statusText = '', statusHint = statusText, activePresetId = '') {
         const nodes = getGeminiRewriteControlNodes(textarea);
         if (!nodes) {
             return;
@@ -1410,14 +1479,39 @@
             delete nodes.root.dataset.state;
         }
 
-        nodes.button.disabled = state === 'busy';
-        nodes.button.textContent = state === 'busy' ? 'Переписываю...' : 'Переписать с Gemini';
-        setHint(
-            nodes.button,
-            state === 'busy'
-                ? 'Отправляет текст в Gemini.'
-                : 'Отправляет текст в Gemini и заменяет содержимое поля.'
-        );
+        if (activePresetId) {
+            nodes.root.dataset.activePresetId = activePresetId;
+        } else {
+            delete nodes.root.dataset.activePresetId;
+        }
+
+        nodes.buttons.forEach((button) => {
+            const isActive = !!activePresetId && button.dataset.presetId === activePresetId;
+            button.disabled = state === 'busy';
+
+            if (isActive && state) {
+                button.dataset.state = state;
+            } else {
+                delete button.dataset.state;
+            }
+
+            if (state === 'busy' && isActive) {
+                setHint(button, button.dataset.busyHint || button.dataset.defaultHint || 'Отправляет текст в Gemini.');
+                return;
+            }
+
+            if (state === 'error' && isActive) {
+                setHint(button, statusHint || button.dataset.defaultHint || 'Не удалось переписать текст.');
+                return;
+            }
+
+            if (state === 'success' && isActive) {
+                setHint(button, statusHint || button.dataset.successHint || button.dataset.defaultHint || 'Текст обновлён.');
+                return;
+            }
+
+            setHint(button, button.dataset.defaultHint || 'Отправляет текст в Gemini.');
+        });
 
         if (statusText) {
             nodes.status.hidden = false;
@@ -1438,20 +1532,34 @@
         geminiRewriteControls.delete(textarea);
     }
 
-    async function rewriteTextareaWithGemini(textarea) {
+    async function rewriteTextareaWithGemini(textarea, presetId) {
+        const preset = getGeminiRewritePresetDefinition(presetId);
         const text = textarea.value.trim();
         if (!text) {
-            setGeminiRewriteControlState(textarea, 'error', 'Сначала введи текст в поле.', 'Поле пустое.');
+            setGeminiRewriteControlState(
+                textarea,
+                'error',
+                'Сначала введи текст в поле.',
+                'Поле пустое.',
+                presetId
+            );
             textarea.focus();
             return;
         }
 
-        setGeminiRewriteControlState(textarea, 'busy', 'Переписываю текст...', 'Отправляет текст в Gemini.');
+        setGeminiRewriteControlState(
+            textarea,
+            'busy',
+            `Применяю режим «${preset?.label || 'Gemini'}»...`,
+            preset?.busyHint || 'Отправляет текст в Gemini.',
+            presetId
+        );
 
         try {
             const response = await sendRuntimeMessage({
                 type: GEMINI_REWRITE_TEXT_MESSAGE,
                 text: textarea.value,
+                presetId,
                 fieldLabel: getResponseFormFieldLabel(textarea) || getResponseNoteDefaultTitle(textarea),
                 vacancyTitle: textarea.form instanceof HTMLFormElement ? getResponseFormVacancyTitle(textarea.form) : '',
                 vacancyId: getCurrentVacancyId()
@@ -1462,7 +1570,8 @@
                     textarea,
                     'error',
                     response?.reason || 'Не удалось переписать текст. Попробуй ещё раз.',
-                    response?.reason || 'Gemini rewrite failed.'
+                    response?.reason || 'Gemini rewrite failed.',
+                    presetId
                 );
                 return;
             }
@@ -1472,12 +1581,13 @@
             setGeminiRewriteControlState(
                 textarea,
                 'success',
-                'Текст переписан.',
-                `Модель: ${response.modelLabel || response.modelId || 'Gemini'}. Режим: ${response.presetLabel || response.presetId || 'rewrite'}.`
+                `Готово: ${response.presetLabel || preset?.label || 'Gemini'}.`,
+                `Модель: ${response.modelLabel || response.modelId || 'Gemini'}. Режим: ${response.presetLabel || response.presetId || 'rewrite'}.`,
+                presetId
             );
         } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
-            setGeminiRewriteControlState(textarea, 'error', reason || 'Не удалось переписать текст.', reason);
+            setGeminiRewriteControlState(textarea, 'error', reason || 'Не удалось переписать текст.', reason, presetId);
         }
     }
 
@@ -1496,6 +1606,9 @@
             return false;
         }
 
+        const letterPickerRoot = getLetterPickerRoot(textarea);
+        const letterPickerControls = letterPickerRoot?.querySelector('.hh-cover-letter-picker__controls');
+
         let root = getGeminiRewriteControlRoot(textarea);
         if (!(root instanceof HTMLElement)) {
             root = document.createElement('div');
@@ -1505,41 +1618,60 @@
             const row = document.createElement('div');
             row.className = 'hh-gemini-rewrite-control__row';
 
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'hh-cover-letter-picker__button hh-gemini-rewrite-control__button';
-            button.textContent = 'Переписать с Gemini';
-            setHint(button, 'Отправляет текст в Gemini и заменяет содержимое поля.');
+            GEMINI_REWRITE_PRESETS.forEach((preset) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'hh-gemini-rewrite-control__button';
+                button.dataset.presetId = preset.id;
+                button.dataset.defaultHint = preset.hint;
+                button.dataset.busyHint = preset.busyHint;
+                button.dataset.successHint = `${preset.label}: текст обновлён.`;
+                button.setAttribute('aria-label', preset.label);
+                setHint(button, preset.hint);
+
+                const icon = document.createElement('span');
+                icon.className = 'hh-gemini-rewrite-control__button-icon';
+                icon.innerHTML = getGeminiRewriteIconMarkup(preset.icon);
+
+                button.appendChild(icon);
+                button.addEventListener('click', () => {
+                    void rewriteTextareaWithGemini(textarea, preset.id);
+                });
+                row.appendChild(button);
+            });
 
             const status = document.createElement('p');
             status.className = 'hh-gemini-rewrite-control__status';
             status.hidden = true;
 
-            button.addEventListener('click', () => {
-                void rewriteTextareaWithGemini(textarea);
-            });
-
             textarea.addEventListener('input', () => {
                 const nodes = getGeminiRewriteControlNodes(textarea);
                 if (nodes && nodes.root.dataset.state !== 'busy') {
-                    setGeminiRewriteControlState(textarea, '', '', '');
+                    setGeminiRewriteControlState(textarea, '', '', '', '');
                 }
             });
 
-            row.appendChild(button);
             root.append(row, status);
 
+            geminiRewriteControls.set(textarea, root);
+        }
+
+        if (letterPickerControls instanceof HTMLElement) {
+            if (root.parentElement !== letterPickerControls) {
+                letterPickerControls.appendChild(root);
+            }
+            root.dataset.position = 'inline';
+        } else {
             const responseNoteRoot = getResponseNoteControlRoot(textarea);
             if (responseNoteRoot instanceof HTMLElement) {
                 responseNoteRoot.insertAdjacentElement('afterend', root);
             } else {
                 anchor.insertAdjacentElement('afterend', root);
             }
-
-            geminiRewriteControls.set(textarea, root);
+            root.dataset.position = 'stacked';
         }
 
-        setGeminiRewriteControlState(textarea, '', '', '');
+        setGeminiRewriteControlState(textarea, '', '', '', '');
         return true;
     }
 
@@ -2198,7 +2330,7 @@
         const chooseButton = document.createElement('button');
         chooseButton.type = 'button';
         chooseButton.className = 'hh-cover-letter-picker__button';
-        chooseButton.textContent = 'Выбрать из моих заметок';
+        chooseButton.textContent = 'Выбрать из заметок';
         setHint(chooseButton, 'Открывает список сохранённых заметок.');
 
         const statusNode = document.createElement('div');
