@@ -1,5 +1,6 @@
 const LETTERS_KEY = 'coverLetters';
 const GEMINI_REWRITE_TEXT_MESSAGE = 'gemini-rewrite-text';
+const GEMINI_GENERATE_NOTE_TITLE_MESSAGE = 'gemini-generate-note-title';
 const GEMINI_REWRITE_PRESETS = [
     {
         id: 'grammar-fix',
@@ -104,6 +105,7 @@ function getFormNodes() {
     return {
         form: document.getElementById('letter-form'),
         actions: document.querySelector('.form-actions'),
+        titleField: document.querySelector('[for="letter-title"]'),
         id: document.getElementById('letter-id'),
         title: document.getElementById('letter-title'),
         body: document.getElementById('letter-body'),
@@ -158,6 +160,25 @@ function getGeminiRewriteControlNodes() {
     }
 
     return { root, buttons, progress, status };
+}
+
+function getGeminiTitleControlNodes() {
+    const { titleField } = getFormNodes();
+    if (!(titleField instanceof HTMLElement)) {
+        return null;
+    }
+
+    const root = titleField.querySelector('.hh-gemini-title-control');
+    if (!(root instanceof HTMLElement)) {
+        return null;
+    }
+
+    const button = root.querySelector('.hh-gemini-title-control__button');
+    if (!(button instanceof HTMLButtonElement)) {
+        return null;
+    }
+
+    return { root, button };
 }
 
 function setGeminiRewriteControlState(state, statusText = '', statusHint = statusText, activePresetId = '') {
@@ -220,10 +241,40 @@ function setGeminiRewriteControlState(state, statusText = '', statusHint = statu
     setTextWithHint(nodes.status, '', '');
 }
 
+function setGeminiTitleControlState(state, hint = '', buttonLabel = '') {
+    const nodes = getGeminiTitleControlNodes();
+    if (!nodes) {
+        return;
+    }
+
+    if (state) {
+        nodes.root.dataset.state = state;
+        nodes.button.dataset.state = state;
+    } else {
+        delete nodes.root.dataset.state;
+        delete nodes.button.dataset.state;
+    }
+
+    nodes.root.setAttribute('aria-busy', state === 'busy' ? 'true' : 'false');
+    nodes.button.disabled = state === 'busy';
+    setHint(nodes.button, hint || nodes.button.dataset.defaultHint || 'Генерирует название заметки по тексту через Gemini.');
+
+    if (buttonLabel) {
+        nodes.button.setAttribute('aria-label', buttonLabel);
+    }
+}
+
 function clearGeminiRewriteControlState() {
     const nodes = getGeminiRewriteControlNodes();
     if (nodes && nodes.root.dataset.state !== 'busy') {
         setGeminiRewriteControlState('', '', '', '');
+    }
+}
+
+function clearGeminiTitleControlState() {
+    const nodes = getGeminiTitleControlNodes();
+    if (nodes && nodes.root.dataset.state !== 'busy') {
+        setGeminiTitleControlState('', '', nodes.button.dataset.defaultLabel || 'Сгенерировать название');
     }
 }
 
@@ -233,9 +284,13 @@ function getGeminiRewriteFieldLabel() {
     return noteTitle ? `Текст заметки «${shortText(noteTitle, 60)}»` : 'Текст заметки';
 }
 
-function setNativeTextValue(textarea, value) {
-    textarea.value = value;
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+function setNativeTextValue(field, value) {
+    if (!(field instanceof HTMLTextAreaElement) && !(field instanceof HTMLInputElement)) {
+        return;
+    }
+
+    field.value = value;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function sendRuntimeMessage(message) {
@@ -312,6 +367,57 @@ async function rewriteLetterBodyWithGemini(presetId) {
     }
 }
 
+function getGeminiTitleIconMarkup() {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"></path><path d="m18 14 .9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"></path></svg>';
+}
+
+async function generateLetterTitleWithGemini() {
+    const { body, title } = getFormNodes();
+    const noteText = body instanceof HTMLTextAreaElement ? body.value.trim() : '';
+
+    if (!(body instanceof HTMLTextAreaElement) || !(title instanceof HTMLInputElement)) {
+        return;
+    }
+
+    if (!noteText) {
+        setGeminiTitleControlState('error', 'Сначала введи текст заметки, чтобы Gemini мог придумать название.', 'Сгенерировать название');
+        setStatus('Сначала введи текст заметки для генерации названия.', 'danger');
+        body.focus();
+        return;
+    }
+
+    setGeminiTitleControlState('busy', 'Генерирует название заметки по тексту через Gemini.', 'Сгенерировать название');
+    setStatus('Gemini генерирует название заметки...');
+
+    try {
+        const response = await sendRuntimeMessage({
+            type: GEMINI_GENERATE_NOTE_TITLE_MESSAGE,
+            text: body.value,
+            currentTitle: title.value.trim()
+        });
+
+        if (!response?.ok || typeof response?.title !== 'string') {
+            const reason = response?.reason || 'Не удалось сгенерировать название заметки.';
+            setGeminiTitleControlState('error', reason, 'Сгенерировать название');
+            setStatus(reason, 'danger');
+            return;
+        }
+
+        setNativeTextValue(title, response.title);
+        title.focus();
+        setGeminiTitleControlState(
+            'success',
+            `Модель: ${response.modelLabel || response.modelId || 'Gemini'}. Название обновлено.`,
+            'Сгенерировать название'
+        );
+        setStatus('Название заметки обновлено через Gemini.');
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        setGeminiTitleControlState('error', reason || 'Не удалось сгенерировать название заметки.', 'Сгенерировать название');
+        setStatus(reason || 'Не удалось сгенерировать название заметки.', 'danger');
+    }
+}
+
 function ensureGeminiRewriteControl() {
     const nodes = getFormNodes();
     if (!(nodes.actions instanceof HTMLElement) || !(nodes.body instanceof HTMLTextAreaElement) || !(nodes.status instanceof HTMLElement)) {
@@ -377,12 +483,78 @@ function ensureGeminiRewriteControl() {
     nodes.actions.insertBefore(root, nodes.status);
 }
 
+function ensureGeminiTitleControl() {
+    const nodes = getFormNodes();
+    if (!(nodes.titleField instanceof HTMLElement) || !(nodes.title instanceof HTMLInputElement) || !(nodes.body instanceof HTMLTextAreaElement)) {
+        return;
+    }
+
+    const existing = getGeminiTitleControlNodes();
+    if (existing) {
+        return;
+    }
+
+    let header = nodes.titleField.querySelector('.field-group__header');
+    if (!(header instanceof HTMLElement)) {
+        const caption = nodes.titleField.querySelector('span');
+        header = document.createElement('div');
+        header.className = 'field-group__header';
+
+        if (caption instanceof HTMLElement) {
+            nodes.titleField.insertBefore(header, caption);
+            header.appendChild(caption);
+        } else {
+            nodes.titleField.insertBefore(header, nodes.title);
+        }
+    }
+
+    const root = document.createElement('div');
+    root.className = 'hh-gemini-title-control';
+    root.setAttribute('aria-busy', 'false');
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'hh-gemini-title-control__button';
+    button.dataset.defaultHint = 'Генерирует название заметки по тексту через Gemini.';
+    button.dataset.defaultLabel = 'Сгенерировать название';
+    button.setAttribute('aria-label', 'Сгенерировать название');
+    setHint(button, button.dataset.defaultHint);
+
+    const icon = document.createElement('span');
+    icon.className = 'hh-gemini-title-control__button-icon';
+    icon.innerHTML = getGeminiTitleIconMarkup();
+
+    const loader = document.createElement('span');
+    loader.className = 'hh-gemini-title-control__button-loader';
+    loader.setAttribute('aria-hidden', 'true');
+
+    const text = document.createElement('span');
+    text.className = 'hh-gemini-title-control__button-text';
+    text.textContent = 'Gemini по тексту';
+
+    button.append(icon, loader, text);
+    button.addEventListener('click', () => {
+        void generateLetterTitleWithGemini();
+    });
+
+    if (!nodes.title.dataset.geminiTitleBound) {
+        nodes.title.addEventListener('input', () => {
+            clearGeminiTitleControlState();
+        });
+        nodes.title.dataset.geminiTitleBound = 'true';
+    }
+
+    root.appendChild(button);
+    header.appendChild(root);
+}
+
 function fillForm(letter) {
     const { id, title, body } = getFormNodes();
     id.value = letter?.id || '';
     title.value = letter?.title || '';
     body.value = letter?.body || '';
     clearGeminiRewriteControlState();
+    clearGeminiTitleControlState();
     title.focus();
 }
 
@@ -493,6 +665,7 @@ function attachEvents() {
 
 document.addEventListener('DOMContentLoaded', () => {
     attachEvents();
+    ensureGeminiTitleControl();
     ensureGeminiRewriteControl();
     resetForm();
     void renderLetters();
