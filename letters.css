@@ -160,6 +160,19 @@ body {
     gap: 14px;
 }
 
+.form-actions .hh-gemini-rewrite-control {
+    margin: 0;
+    flex: 0 1 auto;
+}
+
+.form-actions .hh-gemini-rewrite-control__row {
+    gap: 8px;
+}
+
+.form-actions .status-line {
+    flex: 1 1 220px;
+}
+
 .primary-button,
 .ghost-button,
 .letter-card__delete {
@@ -194,6 +207,169 @@ body {
     margin: 0;
     color: var(--muted);
     font-size: 14px;
+}
+
+.hh-gemini-rewrite-control {
+    display: inline-grid;
+    gap: 8px;
+    align-items: start;
+}
+
+.hh-gemini-rewrite-control__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.hh-gemini-rewrite-control__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #d7e3f0;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #42698c;
+    cursor: pointer;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, opacity 0.16s ease;
+}
+
+.hh-gemini-rewrite-control__button:hover {
+    border-color: #b8cde4;
+    background: #f5f9ff;
+    color: #1f4f7a;
+}
+
+.hh-gemini-rewrite-control__button:disabled {
+    opacity: 0.75;
+    cursor: wait;
+}
+
+.hh-gemini-rewrite-control[data-state='busy'] .hh-gemini-rewrite-control__button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.hh-gemini-rewrite-control__button[data-state='success'] {
+    border-color: #b8dfc6;
+    background: #f3fbf5;
+    color: #20653a;
+}
+
+.hh-gemini-rewrite-control__button[data-state='error'] {
+    border-color: #efc0bc;
+    background: #fff7f6;
+    color: #a33b32;
+}
+
+.hh-gemini-rewrite-control__button[data-state='busy'] {
+    border-color: #b8cde4;
+    background: #f3f8ff;
+    color: #1f4f7a;
+    opacity: 1;
+    cursor: wait;
+}
+
+.hh-gemini-rewrite-control__button-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+}
+
+.hh-gemini-rewrite-control__button-loader {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: hh-gemini-spin 0.9s linear infinite;
+}
+
+.hh-gemini-rewrite-control__button[data-state='busy'] .hh-gemini-rewrite-control__button-icon {
+    display: none;
+}
+
+.hh-gemini-rewrite-control__button[data-state='busy'] .hh-gemini-rewrite-control__button-loader {
+    display: inline-flex;
+}
+
+.hh-gemini-rewrite-control__button-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.hh-gemini-rewrite-control__progress {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(184, 205, 228, 0.45);
+}
+
+.hh-gemini-rewrite-control__progress::after {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 -35%;
+    width: 35%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #0f6af2 0%, #67a8ff 100%);
+    animation: hh-gemini-progress 1.1s ease-in-out infinite;
+}
+
+.hh-gemini-rewrite-control__status {
+    margin: 0;
+    color: #59738d;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.hh-gemini-rewrite-control[data-state='success'] .hh-gemini-rewrite-control__status {
+    color: #20653a;
+}
+
+.hh-gemini-rewrite-control[data-state='error'] .hh-gemini-rewrite-control__status {
+    color: #a33b32;
+}
+
+.hh-gemini-rewrite-control__status[hidden] {
+    display: none !important;
+}
+
+.hh-gemini-rewrite-control__progress[hidden] {
+    display: none !important;
+}
+
+@keyframes hh-gemini-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes hh-gemini-progress {
+    0% {
+        transform: translateX(0);
+    }
+
+    50% {
+        transform: translateX(220%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
 }
 
 .letters-list {
@@ -298,6 +474,10 @@ body {
     }
 
     .letter-card__delete {
+        width: 100%;
+    }
+
+    .form-actions .hh-gemini-rewrite-control {
         width: 100%;
     }
 }
