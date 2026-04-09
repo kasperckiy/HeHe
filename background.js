@@ -46,6 +46,7 @@ function findGeminiConfigEntry(items, id, fallbackId) {
 
 function buildGeminiRewritePrompt(payload, preset) {
     const context = [];
+    const preserveAllContent = preset?.id !== 'rewrite-compact';
 
     if (payload?.fieldLabel) {
         context.push(`Поле формы: ${payload.fieldLabel}`);
@@ -58,6 +59,9 @@ function buildGeminiRewritePrompt(payload, preset) {
     return [
         preset?.instruction || '',
         context.length ? context.join('\n') : '',
+        preserveAllContent
+            ? 'Сохрани все абзацы, предложения, ссылки, списки и смысловые блоки исходного текста. Ничего не пропускай и не выбрасывай, если режим явно не просит сокращать текст.'
+            : '',
         'Исходный текст:',
         payload?.text || '',
         'Верни только переписанный текст без пояснений.'
