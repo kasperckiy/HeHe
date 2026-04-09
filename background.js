@@ -174,7 +174,10 @@ async function handleGeminiRewriteText(message) {
         generationConfig: {
             responseMimeType: 'text/plain',
             candidateCount: 1,
-            maxOutputTokens: 2048
+            maxOutputTokens: 4096,
+            thinkingConfig: {
+                thinkingLevel: 'low'
+            }
         },
         store: false
     };
