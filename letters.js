@@ -274,7 +274,7 @@ function clearGeminiRewriteControlState() {
 function clearGeminiTitleControlState() {
     const nodes = getGeminiTitleControlNodes();
     if (nodes && nodes.root.dataset.state !== 'busy') {
-        setGeminiTitleControlState('', '', nodes.button.dataset.defaultLabel || 'Сгенерировать название');
+        setGeminiTitleControlState('', '', nodes.button.dataset.defaultLabel || 'Помоги назвать');
     }
 }
 
@@ -380,13 +380,13 @@ async function generateLetterTitleWithGemini() {
     }
 
     if (!noteText) {
-        setGeminiTitleControlState('error', 'Сначала введи текст заметки, чтобы Gemini мог придумать название.', 'Сгенерировать название');
+        setGeminiTitleControlState('error', 'Сначала введи текст заметки, чтобы Gemini мог придумать название.', 'Помоги назвать');
         setStatus('Сначала введи текст заметки для генерации названия.', 'danger');
         body.focus();
         return;
     }
 
-    setGeminiTitleControlState('busy', 'Генерирует название заметки по тексту через Gemini.', 'Сгенерировать название');
+    setGeminiTitleControlState('busy', 'Генерирует название заметки по тексту через Gemini.', 'Помоги назвать');
     setStatus('Gemini генерирует название заметки...');
 
     try {
@@ -398,7 +398,7 @@ async function generateLetterTitleWithGemini() {
 
         if (!response?.ok || typeof response?.title !== 'string') {
             const reason = response?.reason || 'Не удалось сгенерировать название заметки.';
-            setGeminiTitleControlState('error', reason, 'Сгенерировать название');
+            setGeminiTitleControlState('error', reason, 'Помоги назвать');
             setStatus(reason, 'danger');
             return;
         }
@@ -408,12 +408,12 @@ async function generateLetterTitleWithGemini() {
         setGeminiTitleControlState(
             'success',
             `Модель: ${response.modelLabel || response.modelId || 'Gemini'}. Название обновлено.`,
-            'Сгенерировать название'
+            'Помоги назвать'
         );
         setStatus('Название заметки обновлено через Gemini.');
     } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
-        setGeminiTitleControlState('error', reason || 'Не удалось сгенерировать название заметки.', 'Сгенерировать название');
+        setGeminiTitleControlState('error', reason || 'Не удалось сгенерировать название заметки.', 'Помоги назвать');
         setStatus(reason || 'Не удалось сгенерировать название заметки.', 'danger');
     }
 }
@@ -516,8 +516,8 @@ function ensureGeminiTitleControl() {
     button.type = 'button';
     button.className = 'hh-gemini-title-control__button';
     button.dataset.defaultHint = 'Генерирует название заметки по тексту через Gemini.';
-    button.dataset.defaultLabel = 'Сгенерировать название';
-    button.setAttribute('aria-label', 'Сгенерировать название');
+    button.dataset.defaultLabel = 'Помоги назвать';
+    button.setAttribute('aria-label', 'Помоги назвать');
     setHint(button, button.dataset.defaultHint);
 
     const icon = document.createElement('span');
@@ -530,7 +530,7 @@ function ensureGeminiTitleControl() {
 
     const text = document.createElement('span');
     text.className = 'hh-gemini-title-control__button-text';
-    text.textContent = 'Gemini по тексту';
+    text.textContent = 'Помоги назвать';
 
     button.append(icon, loader, text);
     button.addEventListener('click', () => {
