@@ -47,7 +47,20 @@
 
 ## Как установить
 
-### Вариант 1. Из GitHub Release
+### Вариант 1. Из Chrome Web Store
+
+Страница расширения:
+<https://chromewebstore.google.com/detail/hehe/nindhlipkdnagkimhfgndepjfmokdona>
+
+1. Открой страницу расширения в Chrome Web Store
+2. Нажми `Add to Chrome`
+3. Подтверди установку расширения в браузере
+4. После установки открой popup HeHe и при необходимости настрой автоскрытие, заметки и Gemini
+
+Важно:
+Этот способ подходит для Chrome и других Chromium-браузеров только если соответствующий магазин/способ установки поддерживает установку из Chrome Web Store в твоём окружении. Для Edge, Opera и ручной установки используй архив из GitHub Release.
+
+### Вариант 2. Из GitHub Release
 
 Последний релиз:
 <https://github.com/kasperckiy/HeHe/releases/latest>
@@ -71,7 +84,7 @@
 
 На каждом теге `v*` GitHub Actions автоматически собирает оба ZIP-архива и прикладывает их к релизу.
 
-### Вариант 2. Из исходников
+### Вариант 3. Из исходников
 
 1. Скачай или клонируй репозиторий
 2. Запусти `npm run build:packages`
