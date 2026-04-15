@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "HeHe",
-    "version": "0.2.4",
-    "description": "Ускоряет работу с hh.ru: скрывает вакансии, сохраняет заметки отклика и помогает переписывать текст.",
+    "version": "0.3.0",
+    "description": "Ускоряет работу с сайтами HH: скрывает вакансии, сохраняет заметки отклика и помогает переписывать текст.",
     "background": {
         "service_worker": "background.js"
     },
@@ -34,7 +34,15 @@
         {
             "matches": [
                 "https://hh.ru/*",
-                "https://*.hh.ru/*"
+                "https://*.hh.ru/*",
+                "https://hh.kz/*",
+                "https://*.hh.kz/*",
+                "https://hh.uz/*",
+                "https://*.hh.uz/*",
+                "https://hh.by/*",
+                "https://*.hh.by/*",
+                "https://rabota.by/*",
+                "https://*.rabota.by/*"
             ],
             "js": [
                 "content.js"

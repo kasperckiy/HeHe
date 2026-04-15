@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- This repository is a Manifest V3 browser extension for hh.ru.
+- This repository is a Manifest V3 browser extension for HH sites, including hh.ru, hh.kz, hh.uz, hh.by, and rabota.by.
 - Core runtime files are `content.js`, `content.css`, `background.js`, `popup.js`, `popup.html`, `letters.js`, and `manifest.json`.
 - Gemini rewrite behavior depends on `prompts/gemini-rewrite.json`; keep prompt, model, and preset changes aligned with the UI and background worker behavior.
 - Cross-browser packaging is built from the root manifest plus overrides in `manifests/` and emitted into `dist/chromium` and `dist/firefox`.
@@ -16,7 +16,7 @@
 ## Conventions
 
 - Prefer minimal, targeted changes and preserve the existing plain JavaScript style.
-- Treat hh.ru selectors and DOM hooks as brittle integration points: add fallbacks instead of replacing working selectors aggressively.
+- Treat selectors and DOM hooks on supported HH domains as brittle integration points: add fallbacks instead of replacing working selectors aggressively.
 - Update README or store docs when user-visible behavior or release workflow changes.
 
 ## Release Workflow

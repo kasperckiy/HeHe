@@ -1,13 +1,13 @@
 # Privacy Policy For HeHe
 
-Effective date: 2026-04-04
+Effective date: 2026-04-15
 
-HeHe is a browser extension for hh.ru. It helps users hide vacancies, save response notes, and optionally rewrite response text through Gemini after an explicit user action.
+HeHe is a browser extension for HH sites, including hh.ru, hh.kz, hh.uz, hh.by, and rabota.by. It helps users hide vacancies, save response notes, and optionally rewrite response text through Gemini after an explicit user action.
 
 ## What Data The Extension Processes
 
-- content visible on hh.ru pages opened by the user
-- text entered by the user into hh.ru response forms
+- content visible on supported HH pages opened by the user
+- text entered by the user into response forms on supported HH pages
 - notes explicitly saved by the user inside the extension
 - extension settings, including the Gemini API key provided by the user
 
@@ -16,7 +16,7 @@ HeHe is a browser extension for hh.ru. It helps users hide vacancies, save respo
 - notes and settings are stored locally using the browser extension storage API
 - the Gemini API key is stored locally and used only to authenticate requests initiated by the user
 - response text is sent to the Google Gemini API only when the user explicitly clicks one of the Gemini rewrite buttons next to a field
-- requests to hh.ru are used only to perform hide actions requested by the user and to check their state
+- requests to the current supported HH domain are used only to perform hide actions requested by the user and to check their state
 
 ## What The Extension Does Not Do
 
@@ -27,7 +27,7 @@ HeHe is a browser extension for hh.ru. It helps users hide vacancies, save respo
 
 ## Third-Party Services
 
-- hh.ru
+- hh.ru, hh.kz, hh.uz, hh.by, rabota.by
 - Google Gemini API
 
 ## Data Retention
